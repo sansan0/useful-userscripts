@@ -1,0 +1,153 @@
+## 前置要求：安装 Tampermonkey
+
+在使用这些脚本之前，你需要先安装 Tampermonkey 浏览器扩展。
+
+### 安装地址
+
+- Chrome：[Chrome 网上应用店](https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo)
+- Edge：[Microsoft Edge 加载项](https://microsoftedge.microsoft.com/addons/detail/tampermonkey/iikmkjmpaadaobahmlepeloendndfphd)
+
+### 开启开发者模式
+
+通过扩展管理页面开启浏览器的开发者模式：
+
+1. Chrome: 访问 `chrome://extensions/`
+   Edge: 访问 `edge://extensions/`
+2. 在右上角或者左侧找到并开启 "Developer mode"（开发者模式）开关
+
+
+---
+
+## 脚本列表
+
+| 脚本名称                   | 描述                                     | 源码                                    | 文档                              |
+| -------------------------- | ---------------------------------------- | --------------------------------------- | --------------------------------- |
+| Claude 对话导出工具        | 将 Claude 对话和附件以 markdown 形式导出 | [claude-markdown-exporter.js](claude/claude-markdown-exporter.js) | [详情](#claude-markdown-exporter) |
+| Bilibili UP 主过滤器       | 过滤屏蔽掉一些 Bilibili UP 主的视频             | [bilibili-up-filter.js](bilibili/bilibili-up-filter.js)       | [详情](#bilibili-up-filter)       |
+| 网站在线时长统计(通用)     | 追踪和统计网站访问时长         | [website-time-tracker.js](website-time-tracker.js)     | [详情](#website-time-tracker)     |
+
+
+---
+
+## claude-markdown-exporter
+
+一个用于导出 Claude AI 对话内容的增强版脚本。支持完整的对话导出，包括文本附件和图片附件（不包括pdf等）
+
+### 参考来源
+
+本脚本参考了 [claude-chat-exporter](https://github.com/agarwalvishal/claude-chat-exporter) ，原项目采用 Console 注入方式实现（在浏览器开发者工具的控制台中复制粘贴运行代码）但因缺少维护现已无法导出正常内容
+（其实更好的方式是抓 json ，但都顺着原项目的思路做完了，能凑活用就行
+
+### 功能对比
+
+原始功能:
+
+- [x] 支持代码块导出
+- [x] 导出对话内容为 Markdown 格式
+- [x] console 注入后直接导出为 claude_conversation.md
+
+新增功能:
+
+- [x] 通过固定的下载按钮下载对话
+- [x] 支持文本附件的导出
+- [x] 支持图片附件的导出（以 Base64 格式）
+- [x] 添加附件统计功能（显示文本和图片附件数量）
+- [x] 优化的界面提示（弹窗通知）
+- [x] 文件名自动包含 Claude 版本信息和对话名
+
+### 安装和使用
+
+1. 安装 Tampermonkey 浏览器扩展
+2. 安装该脚本到 Tampermonkey
+3. 访问 Claude 聊天界面，点击右下角的 "Download Conversation" 按钮即可导出对话
+
+### 使用注意
+
+- 导出过程中如有附件，会自动点击打开附件以获取内容
+- 图片附件将被转换为 Base64 格式内嵌在 Markdown 文件中
+- 导出完成后会显示附件统计信息
+- 双击页面任意位置可以关闭统计提示
+
+![claude-markdown-exporter](_image/claude-markdown-exporter.png)
+---
+
+## bilibili-up-filter
+
+一个用于 B 站的用户脚本，提供快速屏蔽和管理 UP 主内容的功能，以及便捷的 UP 主访问方式。
+
+### 主要功能
+
+- [x] 鼠标悬停显示屏蔽选项
+- [x] 一键屏蔽/取消屏蔽 UP 主
+- [x] 通过输入 UP ID 直接屏蔽
+- [x] 自动过滤被屏蔽 UP 主的所有内容
+- [x] 右侧固定的三个快捷入口
+  - [x] 输入 ID 快速屏蔽
+  - [x] 查看已屏蔽列表
+    - 支持快速移除屏蔽
+    - 屏蔽列表完整管理
+    - 支持直接跳转空间
+  - [x] 查看关注列表
+    - 显示最近关注的 UP 主
+    - 支持直接跳转空间，包含关注时间信息
+
+### 安装和使用
+
+1. 安装 Tampermonkey 浏览器扩展
+2. 安装该脚本到 Tampermonkey
+3. 访问任意 B 站页面即可使用
+4. 通过以下方式屏蔽 UP 主：
+   - 在 b 站首页，鼠标悬停在 UP 主名字上方，点击屏蔽选项
+   - 点击右侧紫色按钮，输入 UP 主 ID 直接屏蔽
+   - 视频播放页面的用户顶部有屏蔽选项
+5. 通过悬停右侧按钮查看：
+   - 已屏蔽 UP 主列表（蓝色按钮）
+   - 最近关注列表（粉色按钮）
+
+### 使用注意
+
+- 需要登录 B 站账号才能使用完整功能（最近关注功能）
+- 屏蔽列表数据保存在本地，清除浏览器数据会导致丢失
+- 通过 ID 屏蔽的 UP 主，在屏蔽列表中初始显示为 ID，不影响过滤效果，当该 UP 主内容出现时首页并过滤成功后会自动更新为昵称
+
+
+![bilibili-up-filter](_image/bilibili-up-filter.png)
+
+---
+
+## website-time-tracker
+
+用于追踪和统计用户在每个二级域名下的在线时长,并提供友好的可视化统计界面(比如 www.bilibili.com 与 space.bilibili.com 是同一个计时器)
+
+### 主要功能
+
+- [x] 实时统计当日在线时长
+- [x] 数据使用 GM_setValue 持久化存储
+- [x] 支持同一个二级域名下的时间累计
+- [x] 悬浮固定显示框
+  - 显示当日累计在线时长
+  - 支持拖拽定位
+  - 支持双击收缩/展开
+- [x] 时间格式化显示
+  - 自动转换为时分秒格式
+  - 实时更新显示
+- [x] 图表化数据展示(精确到分钟)
+- [x] 支持查看历史统计
+
+### 安装和使用
+
+1. 安装 Tampermonkey 浏览器扩展
+2. 安装该脚本到 Tampermonkey
+3. 访问任意网页即可在右上角看到计时器
+4. 通过以下方式使用：
+   - 查看实时计时
+   - 拖拽调整位置
+   - 双击收缩/展开显示框
+   - 点击"查看统计"按钮查看详细数据
+
+![website-time-tracker](_image/website-time-tracker.png)
+
+
+---
+
+
