@@ -25,6 +25,7 @@
 | Claude mermaid 图表查看 | 在线查看 Claude 对话中存在的 mermaid 图表 | [claude-mermaid-viewer.js](claude/claude-mermaid-viewer.js)       | [详情](#claude-mermaid-viewer)    |
 | Bilibili UP 主过滤器    | 过滤屏蔽掉一些 Bilibili UP 主的视频       | [bilibili-up-filter.js](bilibili/bilibili-up-filter.js)           | [详情](#bilibili-up-filter)       |
 | 网站在线时长统计(通用)  | 追踪和统计网站访问时长                    | [website-time-tracker.js](website-time-tracker.js)                | [详情](#website-time-tracker)     |
+| 控制网页视频的音量和播放速度  | 实现视频音量突破100%限制（无需调整电脑系统音量）和精确调整播放速度（0.1倍速为单位）                   | [video-volume-speed-controller.js](video-volume-speed-controller.js)                |     |
 
 ---
 
