@@ -1,3 +1,8 @@
+# sansan0/useful-userscripts
+
+> 如果你不小心偶遇 bug，可以提 issues 让我瞧瞧，
+> 如果项目凑活的帮到你了，麻烦点个 star ⭐ 给到我点更新的动力呗~
+
 ## 前置要求：安装 Tampermonkey
 
 在使用这些脚本之前，你需要先安装 Tampermonkey 浏览器扩展。
@@ -19,19 +24,19 @@
 
 ## 脚本列表
 
-| 脚本名称                | 描述                                      | 源码                                                              | 文档                              |
-| ----------------------- | ----------------------------------------- | ----------------------------------------------------------------- | --------------------------------- |
-| Claude 对话导出工具     | 将 Claude 对话和附件以 markdown 形式导出  | [claude-markdown-exporter.js](claude/claude-markdown-exporter.js) | [详情](#claude-markdown-exporter) |
-| Claude mermaid 图表查看 | 在线查看 Claude 对话中存在的 mermaid 图表 | [claude-mermaid-viewer.js](claude/claude-mermaid-viewer.js)       | [详情](#claude-mermaid-viewer)    |
-| Bilibili UP 主过滤器    | 过滤屏蔽掉一些 Bilibili UP 主的视频       | [bilibili-up-filter.js](bilibili/bilibili-up-filter.js)           | [详情](#bilibili-up-filter)       |
-| 网站在线时长统计(通用)  | 追踪和统计网站访问时长                    | [website-time-tracker.js](website-time-tracker.js)                | [详情](#website-time-tracker)     |
-| 控制网页视频的音量和播放速度  | 实现视频音量突破100%限制（无需调整电脑系统音量）和精确调整播放速度（0.1倍速为单位）                   | [video-volume-speed-controller.js](video-volume-speed-controller.js)                |     |
+| 脚本名称                     | 描述                                                                                  | 源码                                                                 | 文档                              |
+| ---------------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | --------------------------------- |
+| Claude 对话导出工具          | 将 Claude 对话和附件以 markdown 形式导出                                              | [claude-markdown-exporter.js](claude/claude-markdown-exporter.js)    | [详情](#claude-markdown-exporter) |
+| Claude mermaid 图表查看      | 在线查看 Claude 对话中存在的 mermaid 图表                                             | [claude-mermaid-viewer.js](claude/claude-mermaid-viewer.js)          | [详情](#claude-mermaid-viewer)    |
+| Bilibili UP 主过滤器         | 过滤屏蔽掉一些 Bilibili UP 主的视频                                                   | [bilibili-up-filter.js](bilibili/bilibili-up-filter.js)              | [详情](#bilibili-up-filter)       |
+| 网站在线时长统计(通用)       | 追踪和统计网站访问时长                                                                | [website-time-tracker.js](website-time-tracker.js)                   | [详情](#website-time-tracker)     |
+| 控制网页视频的音量和播放速度 | 实现视频音量突破 100%限制（无需调整电脑系统音量）和精确调整播放速度（0.1 倍速为单位） | [video-volume-speed-controller.js](video-volume-speed-controller.js) |                                   |
 
 ---
 
 ## claude-markdown-exporter
 
-一个用于导出 Claude AI 对话内容的增强版脚本。支持完整的对话导出，包括文本附件和图片附件（不包括 pdf 等）
+> 一个用于导出 Claude AI 对话内容的增强版脚本。支持完整的对话导出，包括文本附件和图片附件（不包括 pdf 等）
 
 ### 参考来源
 
@@ -70,10 +75,9 @@
 
 ![claude-markdown-exporter](_image/claude-markdown-exporter.png)
 
-
 ## claude-mermaid-viewer
 
-一个用于 Claude 的用户脚本,提供便捷的 Mermaid 图表查看和交互功能。让 Mermaid 图表展示更加直观、美观。
+> 一个用于 Claude 的用户脚本,提供便捷的 Mermaid 图表查看和交互功能。让 Mermaid 图表展示更加直观、美观。
 
 ### 主要功能
 
@@ -110,7 +114,6 @@
 - 支持所有 Mermaid 支持的图表类型
 - 图表渲染依赖 Mermaid.js 库,首次使用可能需要加载
 
-
 ![claude-markdown-exporter](_image/claude-mermaid-viewer1.png)
 ![claude-markdown-exporter](_image/claude-mermaid-viewer2.png)
 
@@ -118,7 +121,7 @@
 
 ## bilibili-up-filter
 
-一个用于 B 站的用户脚本，提供快速屏蔽和管理 UP 主内容的功能，以及便捷的 UP 主访问方式。
+> 一个用于 B 站的用户脚本，提供快速屏蔽和管理 UP 主内容的功能，以及便捷的 UP 主访问方式。
 
 ### 主要功能
 
@@ -161,7 +164,7 @@
 
 ## website-time-tracker
 
-用于追踪和统计用户在每个二级域名下的在线时长,并提供友好的可视化统计界面(比如 www.bilibili.com 与 space.bilibili.com 是同一个计时器)
+> 用于追踪和统计用户在每个二级域名下的在线时长,并提供友好的可视化统计界面(比如 www.bilibili.com 与 space.bilibili.com 是同一个计时器)
 
 ### 主要功能
 
