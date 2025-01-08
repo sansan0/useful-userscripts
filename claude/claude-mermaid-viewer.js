@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           claude-mermaid-viewer
 // @namespace      https://github.com/sansan0/useful-userscripts
-// @version        1.0
+// @version        1.1
 // @description    在 Claude 聊天界面中渲染和查看 Mermaid 图表的工具
 // @author         sansan
 // @match          https://claude.ai/*
@@ -509,11 +509,30 @@
    */
   function extractMermaidSyntax(codeElement) {
     const topLevelSpans = codeElement.children;
-    let mermaidSyntax = "";
-    for (const span of topLevelSpans) {
-      const lineContent = span.textContent;
-      mermaidSyntax += lineContent.trim() + "\n";
+    const lines = [];
+
+    try {
+      for (const span of topLevelSpans) {
+        if (!span || span.textContent === undefined) continue;
+
+        const spanLines = span.textContent.split("\n");
+
+        for (const line of spanLines) {
+          const cleanedLine = line
+            .replace(/\t/g, "  ")
+            .trimEnd()
+            .replace(/[\u200B-\u200D\uFEFF]/g, "");
+          if (cleanedLine !== "") {
+            lines.push(cleanedLine);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error extracting Mermaid syntax:", error);
+      return "";
     }
+
+    const mermaidSyntax = lines.join("\n");
     console.log("Extracted Mermaid Syntax:");
     console.log(mermaidSyntax);
     return mermaidSyntax;
