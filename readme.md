@@ -24,13 +24,16 @@
 
 ## 脚本列表
 
-| 脚本名称                     | 描述                                                                                  | 源码                                                                 | 文档                              |
-| ---------------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | --------------------------------- |
-| Claude 对话导出工具          | 将 Claude 对话和附件以 markdown 形式导出                                              | [claude-markdown-exporter.js](claude/claude-markdown-exporter.js)    | [详情](#claude-markdown-exporter) |
-| Claude mermaid 图表查看      | 在线查看 Claude 对话中存在的 mermaid 图表                                             | [claude-mermaid-viewer.js](claude/claude-mermaid-viewer.js)          | [详情](#claude-mermaid-viewer)    |
-| Bilibili UP 主过滤器         | 过滤屏蔽掉一些 Bilibili UP 主的视频                                                   | [bilibili-up-filter.js](bilibili/bilibili-up-filter.js)              | [详情](#bilibili-up-filter)       |
-| 网站在线时长统计(通用)       | 追踪和统计网站访问时长                                                                | [website-time-tracker.js](website-time-tracker.js)                   | [详情](#website-time-tracker)     |
-| 控制网页视频的音量和播放速度 | 实现视频音量突破 100%限制（无需调整电脑系统音量）和精确调整播放速度（0.1 倍速为单位） | [video-volume-speed-controller.js](video-volume-speed-controller.js) |                                   |
+经过优化后的表格如下:
+
+| 脚本名称 | 描述 | 源码 | 文档 | 安装 |
+| --- | --- | --- | --- | --- |
+| Claude 对话导出工具 | 将 Claude 对话和附件以 markdown 形式导出 | [claude-markdown-exporter.user.js](claude/claude-markdown-exporter.user.js) | [详情](#claude-markdown-exporter) | [install](https://raw.githubusercontent.com/sansan0/useful-userscripts/master/claude/claude-markdown-exporter.user.js)|
+| Claude mermaid 图表查看 | 在线查看 Claude 对话中存在的 mermaid 图表 | [claude-mermaid-viewer.user.js](claude/claude-mermaid-viewer.user.js) | [详情](#claude-mermaid-viewer) |[install](https://raw.githubusercontent.com/sansan0/useful-userscripts/master/claude/claude-mermaid-viewer.user.js) |
+| Bilibili UP 主过滤器 | 过滤屏蔽掉一些 Bilibili UP 主的视频 | [bilibili-up-filter.user.js](bilibili/bilibili-up-filter.user.js) | [详情](#bilibili-up-filter) |[install](https://raw.githubusercontent.com/sansan0/useful-userscripts/master/bilibili/bilibili-up-filter.user.js) |
+| 网站在线时长统计(通用) | 追踪和统计网站访问时长 | [website-time-tracker.user.js](website-time-tracker.user.js) | [详情](#website-time-tracker) | [install](https://raw.githubusercontent.com/sansan0/useful-userscripts/master/website-time-tracker.user.js)|
+| 控制网页视频的音量和播放速度 | 实现视频音量突破 100%限制（无需调整电脑系统音量）和精确调整播放速度（0.1 倍速为单位） | [video-volume-speed-controller.user.js](video-volume-speed-controller.user.js) | | [install](https://raw.githubusercontent.com/sansan0/useful-userscripts/master/video-volume-speed-controller.user.js)|
+
 
 ---
 
