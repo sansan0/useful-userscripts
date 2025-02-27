@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           bilibili-up-filter
 // @namespace      https://github.com/sansan0/useful-userscripts
-// @version        2.1
+// @version        3.0
 // @description    一个用于B站的用户脚本，提供快速屏蔽和管理UP主内容的功能，以及便捷的UP主访问方式
 // @author         sansan
 // @match          https://www.bilibili.com/*
@@ -13,866 +13,876 @@
 (function () {
   "use strict";
 
+  // 如果当前窗口不是顶层窗口，则直接退出
   if (window !== window.top) {
     return;
   }
 
   /**
-   * 样式定义
-   * 包含了所有UI组件的样式：复选框、提示框、动画等
+   * 常量定义
+   * 定义了程序中使用的各种固定值
    */
-  GM_addStyle(`
-  /* 基础按钮样式 */
-  .id-block-toggle,
-  .blocked-ups-toggle,
-  .following-toggle {
-      position: fixed;
-      right: 10px;
-      padding: 10px;
-      border-radius: 8px;
-      cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      z-index: 9999;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      width: 100px;
-      box-sizing: border-box;
-      transition: all 0.3s ease;
-      color: white;
-  }
-
-  /* ID屏蔽按钮特定样式 */
-  .id-block-toggle {
-      top: calc(50% - 80px);
-      background: #9254de;
-  }
-
-  .id-block-toggle:hover {
-      background: #a872e8;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  }
-
-  /* 已屏蔽按钮特定样式 */
-  .blocked-ups-toggle {
-      top: 50%;
-      transform: translateY(-50%);
-      background: #00aeec;
-  }
-
-  .blocked-ups-toggle:hover {
-      background: #0095cc;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  }
-
-  /* 关注者按钮特定样式 */
-  .following-toggle {
-      top: calc(50% + 40px);
-      background: #FB7299;
-  }
-
-  .following-toggle:hover {
-      background: #fc8bab;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  }
-
-  /* ID屏蔽输入框样式 */
-  .id-block-input {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(146, 84, 222, 0.9);
-      border: none;
-      color: white;
-      padding: 10px;
-      border-radius: 8px;
-      outline: none;
-      display: none;
-      font-size: 14px;
-      box-sizing: border-box;
-  }
-
-  .id-block-input::placeholder {
-      color: rgba(255, 255, 255, 0.8);
-  }
-
-  .id-block-toggle.input-mode .id-block-input {
-      display: block;
-  }
-
-  .id-block-toggle.input-mode span {
-      opacity: 0;
-  }
-
-  /* 隐藏状态样式 */
-  .id-block-toggle.hide,
-  .blocked-ups-toggle.hide,
-  .following-toggle.hide {
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-  }
-
-  /* 复选框样式 */
-  .block-checkbox {
-      position: absolute;
-      top: -40px;
-      bottom: auto;
-      left: 0;
-      background: white;
-      padding: 6px 10px;
-      border: 1px solid #e3e5e7;
-      border-radius: 6px;
-      display: none;
-      z-index: 10;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      transition: all 0.3s ease;
-      font-size: 13px;
-      color: #18191c;
-      width: 130px;
-      white-space: nowrap;
-      box-sizing: border-box;
-      pointer-events: auto;
-  }
-
-  .bili-video-card__info--owner {
-      position: relative;
-      z-index: 9;
-  }
-
-  .block-checkbox:hover {
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  }
-
-  .block-checkbox label {
-      display: flex;
-      align-items: center;
-      cursor: pointer;
-      user-select: none;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      width: 100%;
-  }
-
-  .block-checkbox input[type="checkbox"] {
-      flex-shrink: 0;
-      appearance: none;
-      -webkit-appearance: none;
-      width: 16px;
-      height: 16px;
-      border: 2px solid #c9ccd0;
-      border-radius: 3px;
-      margin-right: 6px;
-      position: relative;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      padding: 0;
-  }
-
-  .block-checkbox input[type="checkbox"]:checked {
-      background-color: #00aeec;
-      border-color: #00aeec;
-  }
-
-  .block-checkbox input[type="checkbox"]:checked::after {
-      content: "";
-      position: absolute;
-      left: 4px;
-      top: 1px;
-      width: 5px;
-      height: 9px;
-      border: solid white;
-      border-width: 0 2px 2px 0;
-      transform: rotate(45deg);
-  }
-
-  .block-checkbox input[type="checkbox"]:hover {
-      border-color: #00aeec;
-  }
-
-  .block-checkbox input[type="checkbox"]:focus {
-      outline: none;
-      box-shadow: 0 0 0 2px rgba(0,174,236,0.2);
-  }
-
-  .block-checkbox input[type="checkbox"]:disabled {
-      background-color: #f5f5f5;
-      border-color: #e0e0e0;
-      cursor: not-allowed;
-  }
-
-  .block-checkbox label span {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      letter-spacing: 0.3px;
-  }
-
-  /* 提示框样式 */
-  .toast-notification {
-      position: fixed;
-      top: 16px;
-      right: 16px;
-      background: rgba(0, 0, 0, 0.8);
-      color: white;
-      padding: 12px 24px;
-      border-radius: 8px;
-      z-index: 9999999;
-      font-size: 14px;
-      opacity: 0;
-      transform: translateX(100%);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      pointer-events: none;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  }
-
-  .toast-notification.show {
-      opacity: 1;
-      transform: translateX(0);
-  }
-
-  .toast-notification.hide {
-      opacity: 0;
-      transform: translateX(100%);
-  }
-
-  .toast-icon {
-      width: 20px;
-      height: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-  }
-
-  .toast-block { color: #ff6b6b; }
-  .toast-unblock { color: #69db7c; }
-
-  /* 动画效果 */
-  @keyframes fadeInUp {
-      from {
-          opacity: 0;
-          transform: translateY(5px);
-      }
-      to {
-          opacity: 1;
-          transform: translateY(0);
-      }
-  }
-
-  @keyframes fadeOutDown {
-      from {
-          opacity: 1;
-          transform: translateY(0);
-      }
-      to {
-          opacity: 0;
-          transform: translateY(5px);
-      }
-  }
-
-  .block-checkbox.show {
-      animation: fadeInUp 0.3s ease forwards;
-  }
-
-  .block-checkbox.hide {
-      animation: fadeOutDown 0.3s ease forwards;
-  }
-
-  /* 面板样式 */
-  .blocked-ups-panel,
-  .following-panel {
-      position: fixed;
-      right: -350px;
-      top: 0;
-      width: 320px;
-      height: 100vh;
-      background: white;
-      box-shadow: -2px 0 8px rgba(0,0,0,0.1);
-      z-index: 9998;
-      transition: right 0.3s ease;
-      display: flex;
-      flex-direction: column;
-  }
-
-  .blocked-ups-panel.show,
-  .following-panel.show {
-      right: 0;
-  }
-
-  .blocked-ups-header {
-      padding: 16px;
-      background: #f6f7f8;
-      border-bottom: 1px solid #e3e5e7;
-      font-weight: bold;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-  }
-
-  .blocked-ups-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 12px;
-  }
-
-  .blocked-up-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px;
-      border-bottom: 1px solid #f0f1f2;
-      transition: background-color 0.2s ease;
-  }
-
-  .blocked-up-item:hover {
-      background-color: #f6f7f8;
-  }
-
-  .blocked-up-info {
-      flex: 1;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      color: #18191c;
-      text-decoration: none;
-      margin-right: 10px;
-  }
-
-  .blocked-up-remove {
-      padding: 4px 8px;
-      border: none;
-      background: #ff6b6b;
-      color: white;
-      border-radius: 4px;
-      cursor: pointer;
-      margin-left: 8px;
-      transition: background-color 0.2s ease;
-  }
-
-  .blocked-up-remove:hover {
-      background: #ff5252;
-  }
-
-  .follow-time {
-      color: #99a2aa;
-      font-size: 12px;
-      margin-left: auto;
-      padding-left: 10px;
-      white-space: nowrap;
-  }
-
-  /* 滚动条样式 */
-  .blocked-ups-list::-webkit-scrollbar {
-      width: 6px;
-  }
-
-  .blocked-ups-list::-webkit-scrollbar-track {
-      background: #f1f1f1;
-  }
-
-  .blocked-ups-list::-webkit-scrollbar-thumb {
-      background: #c0c0c0;
-      border-radius: 3px;
-  }
-
-  .blocked-ups-list::-webkit-scrollbar-thumb:hover {
-      background: #a0a0a0;
-  }
-
-  /* 移除动画 */
-  @keyframes removeItem {
-      0% {
-          opacity: 1;
-          transform: translateX(0);
-      }
-      100% {
-          opacity: 0;
-          transform: translateX(100%);
-          height: 0;
-          padding: 0;
-          margin: 0;
-      }
-  }
-
-  .blocked-up-item.removing {
-      animation: removeItem 0.3s ease-out forwards;
-      overflow: hidden;
-  }
-
-  /* Toast动画 */
-  @keyframes toastIn {
-      from {
-          transform: translateX(100%);
-          opacity: 0;
-      }
-      to {
-          transform: translateX(0);
-          opacity: 1;
-      }
-  }
-
-  @keyframes toastOut {
-      from {
-          transform: translateX(0);
-          opacity: 1;
-      }
-      to {
-          transform: translateX(100%);
-          opacity: 0;
-      }
-  }
-
-  .toast-notification.show {
-      animation: toastIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  }
-
-  .toast-notification.hide {
-      animation: toastOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  }
-`);
-
-  const BLOCKED_UPS_KEY = "blocked_up_users";
-  const TOAST_DISPLAY_DURATION = 2000;
-  const TOAST_ANIMATION_DURATION = 300;
-  const HOVER_DELAY = 100;
+  const CONSTANTS = {
+    BLOCKED_UPS_KEY: "blocked_up_users",
+    TOAST_DISPLAY_DURATION: 2000,
+    TOAST_ANIMATION_DURATION: 300,
+    HOVER_DELAY: 100,
+  };
 
   /**
-   * 显示操作提示框
-   * @param {string} upName - UP主昵称
-   * @param {boolean} isBlocking - true表示屏蔽操作，false表示取消屏蔽
+   * 添加样式到页面
+   * 包含了所有UI组件的样式：按钮、复选框、提示框、动画等
    */
-  function showToast(upName, isBlocking) {
-    const existingToast = document.querySelector(".toast-notification");
-    if (existingToast) existingToast.remove();
-
-    const toast = document.createElement("div");
-    toast.className = "toast-notification";
-    const icon = isBlocking ? "🚫" : "✅";
-    const action = isBlocking ? "已屏蔽" : "已取消屏蔽";
-
-    toast.innerHTML = `
-          <span class="toast-icon ${
-            isBlocking ? "toast-block" : "toast-unblock"
-          }">${icon}</span>
-          <span>${action} UP主：${upName}</span>
-      `;
-
-    document.body.appendChild(toast);
-    toast.offsetHeight;
-    requestAnimationFrame(() => toast.classList.add("show"));
-
-    setTimeout(() => {
-      toast.classList.add("hide");
-      setTimeout(() => toast.remove(), TOAST_ANIMATION_DURATION);
-    }, TOAST_DISPLAY_DURATION);
-  }
-
-  /**
-   * 从localStorage获取被屏蔽的UP主列表
-   * @returns {Array} 返回被屏蔽UP主的数组，每个元素包含id和name
-   */
-  function getBlockedUps() {
-    try {
-      const blockedUps = localStorage.getItem(BLOCKED_UPS_KEY);
-      return blockedUps ? JSON.parse(blockedUps) : [];
-    } catch (error) {
-      console.error("Error getting blocked UPs:", error);
-      return [];
-    }
-  }
-
-  /**
-   * 添加UP主到屏蔽列表
-   * @param {string} upId - UP主的ID
-   * @param {string} upName - UP主的昵称
-   */
-  function addBlockedUp(upId, upName) {
-    const blockedUps = getBlockedUps();
-    const existingIndex = blockedUps.findIndex((up) => up.id === upId);
-
-    if (existingIndex > -1 && !blockedUps[existingIndex].name) {
-      blockedUps[existingIndex].name = upName;
-    } else if (existingIndex === -1) {
-      blockedUps.push({ id: upId, name: upName });
-    }
-
-    localStorage.setItem(BLOCKED_UPS_KEY, JSON.stringify(blockedUps));
-
-    if (document.body.hasAttribute("data-panel-initialized")) {
-      updateBlockedUpsList();
-    }
-  }
-
-  /**
-   * 从屏蔽列表中移除指定UP主
-   * @param {string} upId - 需要移除的UP主ID
-   */
-  function removeBlockedUp(upId) {
-    const blockedUps = getBlockedUps();
-    const filteredUps = blockedUps.filter((up) => up.id !== upId);
-    localStorage.setItem(BLOCKED_UPS_KEY, JSON.stringify(filteredUps));
-
-    if (document.body.hasAttribute("data-panel-initialized")) {
-      updateBlockedUpsList();
-    }
-  }
-
-  /**
-   * 更新被屏蔽UP主列表显示
-   */
-  function updateBlockedUpsList() {
-    const panel = document.querySelector(".blocked-ups-panel");
-    const listContainer = panel?.querySelector(".blocked-ups-list");
-    if (!listContainer) return;
-
-    const blockedUps = getBlockedUps();
-    const reversedUps = [...blockedUps].reverse();
-
-    listContainer.innerHTML = reversedUps
-      .map(
-        (up) => `
-          <div class="blocked-up-item" data-up-id="${up.id}">
-              <a href="https://space.bilibili.com/${up.id}"
-                 target="_blank"
-                 class="blocked-up-info">
-                  ${up.name || `ID: ${up.id}`}
-              </a>
-              <button class="blocked-up-remove">移除</button>
-          </div>
-      `
-      )
-      .join("");
-
-    const toggleButton = document.querySelector(".blocked-ups-toggle");
-    if (toggleButton) {
-      toggleButton.querySelector("span:last-child").textContent =
-        blockedUps.length;
-    }
-
-    const countElement = panel.querySelector(".blocked-count");
-    if (countElement) {
-      countElement.textContent = blockedUps.length;
-    }
-  }
-
-  /**
-   * 更新所有相关复选框的状态
-   * @param {string} upId - UP主ID
-   */
-  function updateCheckboxStatus(upId) {
-    document
-      .querySelectorAll(".bili-video-card__info--owner")
-      .forEach((link) => {
-        const href = link.getAttribute("href");
-        if (!href) return;
-
-        const currentUpId = href.match(/\/(\d+)$/)?.[1];
-        if (currentUpId === upId) {
-          const checkbox = link.querySelector(
-            '.block-checkbox input[type="checkbox"]'
-          );
-          if (checkbox) {
-            checkbox.checked = false;
+  function addStyles() {
+    GM_addStyle(`
+          /* 基础按钮样式 */
+          .id-block-toggle,
+          .blocked-ups-toggle,
+          .following-toggle {
+              position: fixed;
+              right: 10px;
+              padding: 10px;
+              border-radius: 8px;
+              cursor: pointer;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+              z-index: 9999;
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              width: 100px;
+              box-sizing: border-box;
+              transition: all 0.3s ease;
+              color: white;
           }
-        }
-      });
+
+          /* ID屏蔽按钮特定样式 */
+          .id-block-toggle {
+              top: calc(50% - 80px);
+              background: #9254de;
+          }
+
+          .id-block-toggle:hover {
+              background: #a872e8;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+          }
+
+          /* 已屏蔽按钮特定样式 */
+          .blocked-ups-toggle {
+              top: 50%;
+              transform: translateY(-50%);
+              background: #00aeec;
+          }
+
+          .blocked-ups-toggle:hover {
+              background: #0095cc;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+          }
+
+          /* 关注者按钮特定样式 */
+          .following-toggle {
+              top: calc(50% + 40px);
+              background: #FB7299;
+          }
+
+          .following-toggle:hover {
+              background: #fc8bab;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+          }
+
+          /* ID屏蔽输入框样式 */
+          .id-block-input {
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 100%;
+              height: 100%;
+              background: rgba(146, 84, 222, 0.9);
+              border: none;
+              color: white;
+              padding: 10px;
+              border-radius: 8px;
+              outline: none;
+              display: none;
+              font-size: 14px;
+              box-sizing: border-box;
+          }
+
+          .id-block-input::placeholder {
+              color: rgba(255, 255, 255, 0.8);
+          }
+
+          .id-block-toggle.input-mode .id-block-input {
+              display: block;
+          }
+
+          .id-block-toggle.input-mode span {
+              opacity: 0;
+          }
+
+          /* 隐藏状态样式 */
+          .id-block-toggle.hide,
+          .blocked-ups-toggle.hide,
+          .following-toggle.hide {
+              opacity: 0;
+              pointer-events: none;
+              transition: opacity 0.3s ease;
+          }
+
+          /* 复选框样式 */
+          .block-checkbox {
+              position: absolute;
+              top: -40px;
+              bottom: auto;
+              left: 0;
+              background: white;
+              padding: 6px 10px;
+              border: 1px solid #e3e5e7;
+              border-radius: 6px;
+              display: none;
+              z-index: 10;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+              transition: all 0.3s ease;
+              font-size: 13px;
+              color: #18191c;
+              width: 130px;
+              white-space: nowrap;
+              box-sizing: border-box;
+              pointer-events: auto;
+          }
+
+          .bili-video-card__info--owner {
+              position: relative;
+              z-index: 9;
+          }
+
+          .block-checkbox:hover {
+              box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          }
+
+          .block-checkbox label {
+              display: flex;
+              align-items: center;
+              cursor: pointer;
+              user-select: none;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              width: 100%;
+          }
+
+          .block-checkbox input[type="checkbox"] {
+              flex-shrink: 0;
+              appearance: none;
+              -webkit-appearance: none;
+              width: 16px;
+              height: 16px;
+              border: 2px solid #c9ccd0;
+              border-radius: 3px;
+              margin-right: 6px;
+              position: relative;
+              cursor: pointer;
+              transition: all 0.2s ease;
+              padding: 0;
+          }
+
+          .block-checkbox input[type="checkbox"]:checked {
+              background-color: #00aeec;
+              border-color: #00aeec;
+          }
+
+          .block-checkbox input[type="checkbox"]:checked::after {
+              content: "";
+              position: absolute;
+              left: 4px;
+              top: 1px;
+              width: 5px;
+              height: 9px;
+              border: solid white;
+              border-width: 0 2px 2px 0;
+              transform: rotate(45deg);
+          }
+
+          .block-checkbox input[type="checkbox"]:hover {
+              border-color: #00aeec;
+          }
+
+          .block-checkbox input[type="checkbox"]:focus {
+              outline: none;
+              box-shadow: 0 0 0 2px rgba(0,174,236,0.2);
+          }
+
+          .block-checkbox input[type="checkbox"]:disabled {
+              background-color: #f5f5f5;
+              border-color: #e0e0e0;
+              cursor: not-allowed;
+          }
+
+          .block-checkbox label span {
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+              letter-spacing: 0.3px;
+          }
+
+          /* 提示框样式 */
+          .toast-notification {
+              position: fixed;
+              top: 16px;
+              right: 16px;
+              background: rgba(0, 0, 0, 0.8);
+              color: white;
+              padding: 12px 24px;
+              border-radius: 8px;
+              z-index: 9999999;
+              font-size: 14px;
+              opacity: 0;
+              transform: translateX(100%);
+              transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              pointer-events: none;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          }
+
+          .toast-notification.show {
+              opacity: 1;
+              transform: translateX(0);
+          }
+
+          .toast-notification.hide {
+              opacity: 0;
+              transform: translateX(100%);
+          }
+
+          .toast-icon {
+              width: 20px;
+              height: 20px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 16px;
+          }
+
+          .toast-block { color: #ff6b6b; }
+          .toast-unblock { color: #69db7c; }
+
+          /* 动画效果 */
+          @keyframes fadeInUp {
+              from {
+                  opacity: 0;
+                  transform: translateY(5px);
+              }
+              to {
+                  opacity: 1;
+                  transform: translateY(0);
+              }
+          }
+
+          @keyframes fadeOutDown {
+              from {
+                  opacity: 1;
+                  transform: translateY(0);
+              }
+              to {
+                  opacity: 0;
+                  transform: translateY(5px);
+              }
+          }
+
+          .block-checkbox.show {
+              animation: fadeInUp 0.3s ease forwards;
+          }
+
+          .block-checkbox.hide {
+              animation: fadeOutDown 0.3s ease forwards;
+          }
+
+          /* 面板样式 */
+          .blocked-ups-panel,
+          .following-panel {
+              position: fixed;
+              right: -350px;
+              top: 0;
+              width: 320px;
+              height: 100vh;
+              background: white;
+              box-shadow: -2px 0 8px rgba(0,0,0,0.1);
+              z-index: 9998;
+              transition: right 0.3s ease;
+              display: flex;
+              flex-direction: column;
+          }
+
+          .blocked-ups-panel.show,
+          .following-panel.show {
+              right: 0;
+          }
+
+          .blocked-ups-header {
+              padding: 16px;
+              background: #f6f7f8;
+              border-bottom: 1px solid #e3e5e7;
+              font-weight: bold;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+          }
+
+          .blocked-ups-list {
+              flex: 1;
+              overflow-y: auto;
+              padding: 12px;
+          }
+
+          .blocked-up-item {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 10px;
+              border-bottom: 1px solid #f0f1f2;
+              transition: background-color 0.2s ease;
+          }
+
+          .blocked-up-item:hover {
+              background-color: #f6f7f8;
+          }
+
+          .blocked-up-info {
+              flex: 1;
+              min-width: 0;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+              color: #18191c;
+              text-decoration: none;
+              margin-right: 10px;
+          }
+
+          .blocked-up-remove {
+              padding: 4px 8px;
+              border: none;
+              background: #ff6b6b;
+              color: white;
+              border-radius: 4px;
+              cursor: pointer;
+              margin-left: 8px;
+              transition: background-color 0.2s ease;
+          }
+
+          .blocked-up-remove:hover {
+              background: #ff5252;
+          }
+
+          .follow-time {
+              color: #99a2aa;
+              font-size: 12px;
+              margin-left: auto;
+              padding-left: 10px;
+              white-space: nowrap;
+          }
+
+          /* 滚动条样式 */
+          .blocked-ups-list::-webkit-scrollbar {
+              width: 6px;
+          }
+
+          .blocked-ups-list::-webkit-scrollbar-track {
+              background: #f1f1f1;
+          }
+
+          .blocked-ups-list::-webkit-scrollbar-thumb {
+              background: #c0c0c0;
+              border-radius: 3px;
+          }
+
+          .blocked-ups-list::-webkit-scrollbar-thumb:hover {
+              background: #a0a0a0;
+          }
+
+          /* 移除动画 */
+          @keyframes removeItem {
+              0% {
+                  opacity: 1;
+                  transform: translateX(0);
+              }
+              100% {
+                  opacity: 0;
+                  transform: translateX(100%);
+                  height: 0;
+                  padding: 0;
+                  margin: 0;
+              }
+          }
+
+          .blocked-up-item.removing {
+              animation: removeItem 0.3s ease-out forwards;
+              overflow: hidden;
+          }
+
+          /* Toast动画 */
+          @keyframes toastIn {
+              from {
+                  transform: translateX(100%);
+                  opacity: 0;
+              }
+              to {
+                  transform: translateX(0);
+                  opacity: 1;
+              }
+          }
+
+          @keyframes toastOut {
+              from {
+                  transform: translateX(0);
+                  opacity: 1;
+              }
+              to {
+                  transform: translateX(100%);
+                  opacity: 0;
+              }
+          }
+
+          .toast-notification.show {
+              animation: toastIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+          }
+
+          .toast-notification.hide {
+              animation: toastOut 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+          }
+      `);
   }
 
   /**
-   * 创建UP主屏蔽控制的复选框
-   * @param {string} upId - UP主ID
-   * @param {string} upName - UP主昵称
-   * @returns {HTMLElement} 返回创建的复选框元素
+   * 数据存储与管理模块
+   * 处理与localStorage相关的所有操作
    */
-  function createCheckbox(upId, upName) {
-    const checkbox = document.createElement("div");
-    checkbox.className = "block-checkbox";
-    const isBlocked = getBlockedUps().some((up) => up.id === upId);
-
-    checkbox.innerHTML = `
-          <label>
-              <input type="checkbox" ${isBlocked ? "checked" : ""}>
-              <span>屏蔽该UP主</span>
-          </label>
-      `;
-
-    const input = checkbox.querySelector("input");
-    input.addEventListener("change", (e) => {
-      if (e.target.checked) {
-        addBlockedUp(upId, upName);
-        showToast(upName, true);
-      } else {
-        removeBlockedUp(upId);
-        updateCheckboxStatus(upId);
-        showToast(upName, false);
+  const DataManager = {
+    /**
+     * 从localStorage获取被屏蔽的UP主列表
+     * @returns {Array} 返回被屏蔽UP主的数组，每个元素包含id和name
+     */
+    getBlockedUps() {
+      try {
+        const blockedUps = localStorage.getItem(CONSTANTS.BLOCKED_UPS_KEY);
+        return blockedUps ? JSON.parse(blockedUps) : [];
+      } catch (error) {
+        console.error("Error getting blocked UPs:", error);
+        return [];
       }
-      filterBlockedContent();
-    });
+    },
 
-    return checkbox;
-  }
+    /**
+     * 添加UP主到屏蔽列表
+     * @param {string} upId - UP主的ID
+     * @param {string} upName - UP主的昵称
+     */
+    addBlockedUp(upId, upName) {
+      const blockedUps = this.getBlockedUps();
+      const existingIndex = blockedUps.findIndex((up) => up.id === upId);
+
+      if (existingIndex > -1 && !blockedUps[existingIndex].name) {
+        blockedUps[existingIndex].name = upName;
+      } else if (existingIndex === -1) {
+        blockedUps.push({ id: upId, name: upName });
+      }
+
+      localStorage.setItem(
+        CONSTANTS.BLOCKED_UPS_KEY,
+        JSON.stringify(blockedUps)
+      );
+
+      if (document.body.hasAttribute("data-panel-initialized")) {
+        UIManager.updateBlockedUpsList();
+      }
+    },
+
+    /**
+     * 从屏蔽列表中移除指定UP主
+     * @param {string} upId - 需要移除的UP主ID
+     */
+    removeBlockedUp(upId) {
+      const blockedUps = this.getBlockedUps();
+      const filteredUps = blockedUps.filter((up) => up.id !== upId);
+      localStorage.setItem(
+        CONSTANTS.BLOCKED_UPS_KEY,
+        JSON.stringify(filteredUps)
+      );
+
+      if (document.body.hasAttribute("data-panel-initialized")) {
+        UIManager.updateBlockedUpsList();
+      }
+    },
+
+    /**
+     * 检查UP主是否被屏蔽
+     * @param {string} upId - UP主ID
+     * @returns {boolean} 如果被屏蔽返回true，否则返回false
+     */
+    isBlocked(upId) {
+      return this.getBlockedUps().some((up) => up.id === upId);
+    },
+  };
+
   /**
-   * 处理UP主链接的鼠标悬停事件
-   * @param {HTMLElement} element - UP主链接元素
+   * UI管理模块
+   * 处理所有界面元素的创建、更新和交互
    */
-  function handleHover(element) {
-    const href = element.getAttribute("href");
-    if (!href) return;
+  const UIManager = {
+    blockedUpsPanel: null,
 
-    const upId = href.match(/\/(\d+)$/)?.[1];
-    if (!upId) return;
+    /**
+     * 显示操作提示框
+     * @param {string} upName - UP主昵称
+     * @param {boolean} isBlocking - true表示屏蔽操作，false表示取消屏蔽
+     */
+    showToast(upName, isBlocking) {
+      const existingToast = document.querySelector(".toast-notification");
+      if (existingToast) existingToast.remove();
 
-    const authorSpan = element.querySelector(".bili-video-card__info--author");
-    const upName = authorSpan?.getAttribute("title") || "未知UP主";
+      const toast = document.createElement("div");
+      toast.className = "toast-notification";
+      const icon = isBlocking ? "🚫" : "✅";
+      const action = isBlocking ? "已屏蔽" : "已取消屏蔽";
 
-    let checkbox = element.querySelector(".block-checkbox");
-    if (!checkbox) {
-      checkbox = createCheckbox(upId, upName);
-      element.style.position = "relative";
-      element.appendChild(checkbox);
-    } else {
-      const input = checkbox.querySelector('input[type="checkbox"]');
-      const isBlocked = getBlockedUps().some((up) => up.id === upId);
-      input.checked = isBlocked;
-    }
+      toast.innerHTML = `
+              <span class="toast-icon ${
+                isBlocking ? "toast-block" : "toast-unblock"
+              }">${icon}</span>
+              <span>${action} UP主：${upName}</span>
+          `;
 
-    let hideTimeout;
-    let isOverElement = false;
-    let isOverCheckbox = false;
+      document.body.appendChild(toast);
+      toast.offsetHeight; // 触发重绘
+      requestAnimationFrame(() => toast.classList.add("show"));
 
-    const showCheckbox = () => {
-      checkbox.style.display = "block";
-      requestAnimationFrame(() => {
-        checkbox.style.opacity = "1";
-        checkbox.style.transform = "translateY(0)";
-      });
-    };
-
-    const hideCheckbox = () => {
-      checkbox.style.opacity = "0";
-      checkbox.style.transform = "translateY(5px)";
-      hideTimeout = setTimeout(() => {
-        checkbox.style.display = "none";
-      }, TOAST_ANIMATION_DURATION);
-    };
-
-    const checkVisibility = () => {
       setTimeout(() => {
-        if (!isOverElement && !isOverCheckbox) {
-          hideCheckbox();
+        toast.classList.add("hide");
+        setTimeout(() => toast.remove(), CONSTANTS.TOAST_ANIMATION_DURATION);
+      }, CONSTANTS.TOAST_DISPLAY_DURATION);
+    },
+
+    /**
+     * 更新被屏蔽UP主列表显示
+     */
+    updateBlockedUpsList() {
+      const panel = document.querySelector(".blocked-ups-panel");
+      const listContainer = panel?.querySelector(".blocked-ups-list");
+      if (!listContainer) return;
+
+      const blockedUps = DataManager.getBlockedUps();
+      const reversedUps = [...blockedUps].reverse();
+
+      listContainer.innerHTML = reversedUps
+        .map(
+          (up) => `
+              <div class="blocked-up-item" data-up-id="${up.id}">
+                  <a href="https://space.bilibili.com/${up.id}"
+                     target="_blank"
+                     class="blocked-up-info">
+                      ${up.name || `ID: ${up.id}`}
+                  </a>
+                  <button class="blocked-up-remove">移除</button>
+              </div>
+          `
+        )
+        .join("");
+
+      const toggleButton = document.querySelector(".blocked-ups-toggle");
+      if (toggleButton) {
+        toggleButton.querySelector("span:last-child").textContent =
+          blockedUps.length;
+      }
+
+      const countElement = panel.querySelector(".blocked-count");
+      if (countElement) {
+        countElement.textContent = blockedUps.length;
+      }
+    },
+
+    /**
+     * 创建UP主屏蔽控制的复选框
+     * @param {string} upId - UP主ID
+     * @param {string} upName - UP主昵称
+     * @returns {HTMLElement} 返回创建的复选框元素
+     */
+    createCheckbox(upId, upName) {
+      const checkbox = document.createElement("div");
+      checkbox.className = "block-checkbox";
+      const isBlocked = DataManager.isBlocked(upId);
+
+      checkbox.innerHTML = `
+              <label>
+                  <input type="checkbox" ${isBlocked ? "checked" : ""}>
+                  <span>屏蔽该UP主</span>
+              </label>
+          `;
+
+      const input = checkbox.querySelector("input");
+      input.addEventListener("change", (e) => {
+        if (e.target.checked) {
+          DataManager.addBlockedUp(upId, upName);
+          this.showToast(upName, true);
+        } else {
+          DataManager.removeBlockedUp(upId);
+          this.updateCheckboxStatus(upId);
+          this.showToast(upName, false);
         }
-      }, HOVER_DELAY);
-    };
-
-    element.addEventListener("mouseenter", () => {
-      isOverElement = true;
-      clearTimeout(hideTimeout);
-      showCheckbox();
-    });
-
-    element.addEventListener("mouseleave", () => {
-      isOverElement = false;
-      checkVisibility();
-    });
-
-    checkbox.addEventListener("mouseenter", () => {
-      isOverCheckbox = true;
-      clearTimeout(hideTimeout);
-    });
-
-    checkbox.addEventListener("mouseleave", () => {
-      isOverCheckbox = false;
-      checkVisibility();
-    });
-
-    element.setAttribute("data-hover-initialized", "true");
-  }
-
-  /**
-   * 过滤并移除被屏蔽UP主的内容
-   */
-  function filterBlockedContent() {
-    document
-      .querySelectorAll(".floor-single-card, .bili-live-card")
-      .forEach((card) => card.remove());
-
-    const blockedUps = getBlockedUps();
-    const filteredUps = new Set();
-
-    document
-      .querySelectorAll(".bili-video-card__info--owner")
-      .forEach((link) => {
-        const upId = link.getAttribute("href")?.match(/\/(\d+)$/)?.[1];
-        if (upId && blockedUps.some((up) => up.id === upId)) {
-          const authorSpan = link.querySelector(
-            ".bili-video-card__info--author"
-          );
-          const upName = authorSpan?.getAttribute("title") || "未知UP主";
-          addBlockedUp(upId, upName);
-
-          const targetCard =
-            link.closest(".feed-card") || link.closest(".bili-video-card");
-          if (targetCard && !filteredUps.has(upId)) {
-            targetCard.remove();
-            showToast(upName, true);
-            filteredUps.add(upId);
-          }
-        }
+        ContentFilter.filterBlockedContent();
       });
-  }
 
-  /**
-   * 等待指定元素加载完成
-   */
-  function waitForElement(
-    selector,
-    maxAttempts = 3,
-    interval = 1000,
-    initialDelay = 1000
-  ) {
-    return new Promise((resolve, reject) => {
-      let attempts = 0;
+      return checkbox;
+    },
 
-      const checkElement = () => {
-        const element = document.querySelector(selector);
-        if (element) {
-          resolve(element);
-          return;
-        }
+    /**
+     * 更新所有相关复选框的状态
+     * @param {string} upId - UP主ID
+     */
+    updateCheckboxStatus(upId) {
+      document
+        .querySelectorAll(".bili-video-card__info--owner")
+        .forEach((link) => {
+          const href = link.getAttribute("href");
+          if (!href) return;
 
-        attempts++;
-        if (attempts >= maxAttempts) {
-          reject(
-            new Error(
-              `Element ${selector} not found after ${maxAttempts} attempts`
-            )
-          );
-          return;
-        }
+          const currentUpId = href.match(/\/(\d+)$/)?.[1];
+          if (currentUpId === upId) {
+            const checkbox = link.querySelector(
+              '.block-checkbox input[type="checkbox"]'
+            );
+            if (checkbox) {
+              checkbox.checked = false;
+            }
+          }
+        });
+    },
 
-        setTimeout(checkElement, interval);
+    /**
+     * 处理UP主链接的鼠标悬停事件
+     * @param {HTMLElement} element - UP主链接元素
+     */
+    handleHover(element) {
+      const href = element.getAttribute("href");
+      if (!href) return;
+
+      const upId = href.match(/\/(\d+)$/)?.[1];
+      if (!upId) return;
+
+      const authorSpan = element.querySelector(
+        ".bili-video-card__info--author"
+      );
+      const upName = authorSpan?.getAttribute("title") || "未知UP主";
+
+      let checkbox = element.querySelector(".block-checkbox");
+      if (!checkbox) {
+        checkbox = this.createCheckbox(upId, upName);
+        element.style.position = "relative";
+        element.appendChild(checkbox);
+      } else {
+        const input = checkbox.querySelector('input[type="checkbox"]');
+        const isBlocked = DataManager.isBlocked(upId);
+        input.checked = isBlocked;
+      }
+
+      let hideTimeout;
+      let isOverElement = false;
+      let isOverCheckbox = false;
+
+      const showCheckbox = () => {
+        checkbox.style.display = "block";
+        requestAnimationFrame(() => {
+          checkbox.style.opacity = "1";
+          checkbox.style.transform = "translateY(0)";
+        });
       };
 
-      setTimeout(checkElement, initialDelay);
-    });
-  }
+      const hideCheckbox = () => {
+        checkbox.style.opacity = "0";
+        checkbox.style.transform = "translateY(5px)";
+        hideTimeout = setTimeout(() => {
+          checkbox.style.display = "none";
+        }, CONSTANTS.TOAST_ANIMATION_DURATION);
+      };
 
-  /**
-   * 切换所有按钮的显示/隐藏状态
-   */
-  function toggleAllButtons(hide = true) {
-    const followingToggle = document.querySelector(".following-toggle");
-    const blockedToggle = document.querySelector(".blocked-ups-toggle");
-    const idBlockToggle = document.querySelector(".id-block-toggle");
+      const checkVisibility = () => {
+        setTimeout(() => {
+          if (!isOverElement && !isOverCheckbox) {
+            hideCheckbox();
+          }
+        }, CONSTANTS.HOVER_DELAY);
+      };
 
-    if (hide) {
-      followingToggle?.classList.add("hide");
-      blockedToggle?.classList.add("hide");
-      idBlockToggle?.classList.add("hide");
-    } else {
-      followingToggle?.classList.remove("hide");
-      blockedToggle?.classList.remove("hide");
-      idBlockToggle?.classList.remove("hide");
-    }
-  }
+      element.addEventListener("mouseenter", () => {
+        isOverElement = true;
+        clearTimeout(hideTimeout);
+        showCheckbox();
+      });
 
-  let followingPanelInitialized = false;
-  let blockedUpsPanel;
+      element.addEventListener("mouseleave", () => {
+        isOverElement = false;
+        checkVisibility();
+      });
 
-  /**
-   * 创建并管理被屏蔽UP主列表面板
-   */
-  function createBlockedUpsPanel() {
-    const idBlockButton = document.createElement("div");
-    idBlockButton.className = "id-block-toggle";
-    idBlockButton.innerHTML = `
-      <span>手动屏蔽ID</span>
-      <span></span>
-      <input type="text" class="id-block-input" placeholder="输入UP主ID" pattern="[0-9]*">
-      `;
+      checkbox.addEventListener("mouseenter", () => {
+        isOverCheckbox = true;
+        clearTimeout(hideTimeout);
+      });
 
-    const idInput = idBlockButton.querySelector(".id-block-input");
+      checkbox.addEventListener("mouseleave", () => {
+        isOverCheckbox = false;
+        checkVisibility();
+      });
 
-    idBlockButton.addEventListener("mouseenter", () => {
-      idBlockButton.classList.add("input-mode");
-      idInput.focus();
-    });
+      element.setAttribute("data-hover-initialized", "true");
+    },
 
-    idBlockButton.addEventListener("mouseleave", (e) => {
-      if (document.activeElement !== idInput) {
-        idBlockButton.classList.remove("input-mode");
-        idInput.value = "";
+    /**
+     * 切换所有按钮的显示/隐藏状态
+     * @param {boolean} hide - 为true时隐藏按钮，为false时显示按钮
+     */
+    toggleAllButtons(hide = true) {
+      const followingToggle = document.querySelector(".following-toggle");
+      const blockedToggle = document.querySelector(".blocked-ups-toggle");
+      const idBlockToggle = document.querySelector(".id-block-toggle");
+
+      if (hide) {
+        followingToggle?.classList.add("hide");
+        blockedToggle?.classList.add("hide");
+        idBlockToggle?.classList.add("hide");
+      } else {
+        followingToggle?.classList.remove("hide");
+        blockedToggle?.classList.remove("hide");
+        idBlockToggle?.classList.remove("hide");
       }
-    });
+    },
 
-    idInput.addEventListener("input", (e) => {
-      e.target.value = e.target.value.replace(/\D/g, "");
-    });
+    /**
+     * 创建并管理被屏蔽UP主列表面板
+     * @returns {Object} 返回包含更新面板方法的对象
+     */
+    createBlockedUpsPanel() {
+      // 创建ID屏蔽按钮
+      const idBlockButton = document.createElement("div");
+      idBlockButton.className = "id-block-toggle";
+      idBlockButton.innerHTML = `
+              <span>手动屏蔽ID</span>
+              <span></span>
+              <input type="text" class="id-block-input" placeholder="输入UP主ID" pattern="[0-9]*">
+          `;
 
-    idInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        const upId = e.target.value.trim();
-        if (upId) {
-          addBlockedUp(upId, null);
-          showToast(`ID: ${upId}`, true);
-          e.target.value = "";
-          idBlockButton.classList.remove("input-mode");
-          updateBlockedUpsList();
-          filterBlockedContent();
-        }
-      } else if (e.key === "Escape") {
-        idBlockButton.classList.remove("input-mode");
-        e.target.value = "";
-        idBlockButton.blur();
-      }
-    });
+      // 获取输入框元素
+      const idInput = idBlockButton.querySelector(".id-block-input");
 
-    idInput.addEventListener("blur", () => {
-      setTimeout(() => {
+      // 处理ID输入框事件
+      this._setupIdInputEvents(idBlockButton, idInput);
+      document.body.appendChild(idBlockButton);
+
+      // 创建已屏蔽按钮
+      const toggleButton = document.createElement("div");
+      toggleButton.className = "blocked-ups-toggle";
+      toggleButton.innerHTML = `
+              <span>已屏蔽</span>
+              <span>${DataManager.getBlockedUps().length}</span>
+          `;
+
+      // 创建屏蔽列表面板
+      const panel = document.createElement("div");
+      panel.className = "blocked-ups-panel";
+      panel.innerHTML = `
+              <div class="blocked-ups-header">
+                  <span>已屏蔽的UP主</span>
+                  <span class="blocked-count">${
+                    DataManager.getBlockedUps().length
+                  }</span>
+              </div>
+              <div class="blocked-ups-list"></div>
+          `;
+
+      // 设置面板交互
+      this._setupPanelInteraction(toggleButton, panel);
+      this._setupRemoveButtons(panel);
+
+      document.body.appendChild(toggleButton);
+      document.body.appendChild(panel);
+      this.updateBlockedUpsList();
+
+      document.body.setAttribute("data-panel-initialized", "true");
+
+      return {
+        updateBlockedUpsList: () => this.updateBlockedUpsList(),
+      };
+    },
+
+    /**
+     * 设置ID输入框的事件处理
+     * @private
+     * @param {HTMLElement} idBlockButton - ID屏蔽按钮元素
+     * @param {HTMLElement} idInput - 输入框元素
+     */
+    _setupIdInputEvents(idBlockButton, idInput) {
+      // 处理鼠标进入事件
+      idBlockButton.addEventListener("mouseenter", () => {
+        idBlockButton.classList.add("input-mode");
+        idInput.focus();
+      });
+
+      // 处理鼠标离开事件
+      idBlockButton.addEventListener("mouseleave", () => {
         if (document.activeElement !== idInput) {
           idBlockButton.classList.remove("input-mode");
           idInput.value = "";
         }
-      }, 200);
-    });
+      });
 
-    document.body.appendChild(idBlockButton);
+      // 处理输入事件
+      idInput.addEventListener("input", (e) => {
+        e.target.value = e.target.value.replace(/\D/g, "");
+      });
 
-    const toggleButton = document.createElement("div");
-    toggleButton.className = "blocked-ups-toggle";
-    toggleButton.innerHTML = `
-      <span>已屏蔽</span>
-      <span>${getBlockedUps().length}</span>
-      `;
+      // 处理键盘事件
+      idInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          const upId = e.target.value.trim();
+          if (upId) {
+            DataManager.addBlockedUp(upId, null);
+            this.showToast(`ID: ${upId}`, true);
+            e.target.value = "";
+            idBlockButton.classList.remove("input-mode");
+            this.updateBlockedUpsList();
+            ContentFilter.filterBlockedContent();
+          }
+        } else if (e.key === "Escape") {
+          idBlockButton.classList.remove("input-mode");
+          e.target.value = "";
+          idBlockButton.blur();
+        }
+      });
 
-    const panel = document.createElement("div");
-    panel.className = "blocked-ups-panel";
-    panel.innerHTML = `
-      <div class="blocked-ups-header">
-          <span>已屏蔽的UP主</span>
-          <span class="blocked-count">${getBlockedUps().length}</span>
-      </div>
-      <div class="blocked-ups-list"></div>
-  `;
+      // 处理失去焦点事件
+      idInput.addEventListener("blur", () => {
+        setTimeout(() => {
+          if (document.activeElement !== idInput) {
+            idBlockButton.classList.remove("input-mode");
+            idInput.value = "";
+          }
+        }, 200);
+      });
+    },
 
-    let panelVisible = false;
-    let mouseInPanel = false;
+    /**
+     * 设置面板交互事件
+     * @private
+     * @param {HTMLElement} toggleButton - 触发按钮
+     * @param {HTMLElement} panel - 面板元素
+     */
+    _setupPanelInteraction(toggleButton, panel) {
+      let mouseInPanel = false;
 
-    const setupPanelInteraction = () => {
       toggleButton.addEventListener("mouseenter", () => {
         panel.classList.add("show");
-        panelVisible = true;
-        toggleAllButtons(true);
-        updateBlockedUpsList();
+        this.toggleAllButtons(true);
+        this.updateBlockedUpsList();
       });
 
       panel.addEventListener("mouseenter", () => {
@@ -884,8 +894,7 @@
         setTimeout(() => {
           if (!mouseInPanel && !toggleButton.matches(":hover")) {
             panel.classList.remove("show");
-            panelVisible = false;
-            toggleAllButtons(false);
+            this.toggleAllButtons(false);
           }
         }, 200);
       });
@@ -894,15 +903,19 @@
         setTimeout(() => {
           if (!mouseInPanel) {
             panel.classList.remove("show");
-            panelVisible = false;
-            toggleAllButtons(false);
+            this.toggleAllButtons(false);
           }
         }, 200);
       });
-    };
+    },
 
-    const setupRemoveButtons = () => {
-      panel.addEventListener("click", async (e) => {
+    /**
+     * 设置移除按钮的事件处理
+     * @private
+     * @param {HTMLElement} panel - 面板元素
+     */
+    _setupRemoveButtons(panel) {
+      panel.addEventListener("click", (e) => {
         if (e.target.classList.contains("blocked-up-remove")) {
           const upItem = e.target.closest(".blocked-up-item");
           if (!upItem) return;
@@ -915,104 +928,136 @@
           upItem.classList.add("removing");
 
           setTimeout(() => {
-            removeBlockedUp(upId);
-            updateCheckboxStatus(upId);
-            showToast(upName, false);
-            updateBlockedUpsList();
-            filterBlockedContent();
+            DataManager.removeBlockedUp(upId);
+            this.updateCheckboxStatus(upId);
+            this.showToast(upName, false);
+            this.updateBlockedUpsList();
+            ContentFilter.filterBlockedContent();
           }, 300);
         }
       });
-    };
+    },
 
-    document.body.appendChild(toggleButton);
-    document.body.appendChild(panel);
+    /**
+     * 添加屏蔽复选框到UP主头像
+     */
+    addCheckboxToUpAvatar() {
+      const upAvatar = document.querySelector("a.up-avatar");
+      if (!upAvatar) return;
 
-    setupPanelInteraction();
-    setupRemoveButtons();
-    updateBlockedUpsList();
+      const href = upAvatar.getAttribute("href");
+      if (!href) return;
 
-    document.body.setAttribute("data-panel-initialized", "true");
+      const upId = href.match(/\/(\d+)$/)?.[1];
+      if (!upId) return;
 
-    return {
-      updateBlockedUpsList: () => updateBlockedUpsList(),
-    };
-  }
+      const upNameElement = document.querySelector(".up-name");
+      const upName = upNameElement?.textContent?.trim() || "未知UP主";
 
-  /**
-   * 创建并管理关注列表面板
-   */
-  async function createFollowingPanel() {
-    if (followingPanelInitialized) return;
-
-    try {
-      const statsContainer = await waitForElement(".logged-in > .stats");
-      if (!statsContainer) return;
-
-      const followLink = statsContainer.querySelector("a");
-      if (!followLink) {
-        console.warn("未找到关注链接");
-        return;
-      }
-
-      const userId = followLink.href.match(/space\.bilibili\.com\/(\d+)/)?.[1];
-      if (!userId) {
-        console.warn("无法获取用户ID");
-        return;
-      }
-
-      const followCount =
-        followLink.querySelector(".stats-number")?.textContent;
-      const followTotal = parseInt(followCount) || 0;
-
-      const toggleButton = document.createElement("div");
-      toggleButton.className = "following-toggle";
-      toggleButton.innerHTML = `
-          <span>关注者</span>
-          <span>${followTotal}</span>
-          `;
-
-      const panel = document.createElement("div");
-      panel.className = "following-panel";
-      panel.innerHTML = `
-          <div class="blocked-ups-header">
-              <span>关注的UP主</span>
-              <span class="following-count">${
-                followTotal > 50 ? "最近 50 位" : followTotal
-              }</span>
-          </div>
-          <div class="blocked-ups-list"></div>
-      `;
-
-      async function fetchFollowingList() {
-        try {
-          // 无论总数多少，始终只请求最近的50个
-          const response = await fetch(
-            `https://api.bilibili.com/x/relation/followings?vmid=${userId}&ps=50`,
-            {
-              credentials: "include",
-              headers: { Accept: "application/json" },
-            }
-          );
-
-          if (!response.ok)
-            throw new Error(`HTTP error! status: ${response.status}`);
-          const data = await response.json();
-          if (data.code !== 0)
-            throw new Error(
-              `API error! code: ${data.code}, message: ${data.message}`
-            );
-
-          return data.data;
-        } catch (error) {
-          console.error("Error fetching following list:", error);
-          return null;
+      const createAndAddCheckbox = () => {
+        let checkbox = upAvatar.querySelector(".block-checkbox");
+        if (!checkbox) {
+          checkbox = this.createCheckbox(upId, upName);
+          upAvatar.style.position = "relative";
+          upAvatar.appendChild(checkbox);
+          checkbox.style.display = "block";
+          checkbox.style.opacity = "1";
+          checkbox.style.transform = "translateY(0)";
         }
-      }
+      };
 
-      async function updateFollowingList() {
+      // 立即创建一次
+      createAndAddCheckbox();
+
+      // 创建专门监听 up-avatar 的观察器
+      const avatarObserver = new MutationObserver(() => {
+        createAndAddCheckbox();
+      });
+
+      // 配置观察器
+      avatarObserver.observe(upAvatar, {
+        childList: true, // 监听子元素变化
+        subtree: true, // 监听所有后代元素
+        characterData: true, // 监听文本内容变化
+        attributes: true, // 监听属性变化
+      });
+    },
+
+    /**
+     * 创建并管理关注列表面板
+     * @returns {Promise<void>}
+     */
+    async createFollowingPanel() {
+      if (this.followingPanelInitialized) return;
+
+      try {
+        const statsContainer = await DOMUtils.waitForElement(
+          ".logged-in > .stats"
+        );
+        if (!statsContainer) return;
+
+        const followLink = statsContainer.querySelector("a");
+        if (!followLink) {
+          console.warn("未找到关注链接");
+          return;
+        }
+
+        const userId = followLink.href.match(
+          /space\.bilibili\.com\/(\d+)/
+        )?.[1];
+        if (!userId) {
+          console.warn("无法获取用户ID");
+          return;
+        }
+
+        const followCount =
+          followLink.querySelector(".stats-number")?.textContent;
+        const followTotal = parseInt(followCount) || 0;
+
+        const toggleButton = document.createElement("div");
+        toggleButton.className = "following-toggle";
+        toggleButton.innerHTML = `
+                  <span>关注者</span>
+                  <span>${followTotal}</span>
+              `;
+
+        const panel = document.createElement("div");
+        panel.className = "following-panel";
+        panel.innerHTML = `
+                  <div class="blocked-ups-header">
+                      <span>关注的UP主</span>
+                      <span class="following-count">${
+                        followTotal > 50 ? "最近 50 位" : followTotal
+                      }</span>
+                  </div>
+                  <div class="blocked-ups-list"></div>
+              `;
+
+        this._setupFollowingPanelEvents(toggleButton, panel, userId);
+
+        document.body.appendChild(toggleButton);
+        document.body.appendChild(panel);
+
+        this.followingPanelInitialized = true;
+      } catch (error) {
+        console.warn("创建关注者面板失败:", error);
+      }
+    },
+
+    /**
+     * 设置关注面板的事件处理和数据加载
+     * @private
+     * @param {HTMLElement} toggleButton - 触发按钮
+     * @param {HTMLElement} panel - 面板元素
+     * @param {string} userId - 用户ID
+     */
+    _setupFollowingPanelEvents(toggleButton, panel, userId) {
+      let mouseInPanel = false;
+
+      // 获取关注列表
+      const updateFollowingList = async () => {
         const listContainer = panel.querySelector(".blocked-ups-list");
-        const data = await fetchFollowingList();
+        const data = await APIManager.fetchFollowingList(userId);
         if (!data) return;
 
         const headerText = panel.querySelector(
@@ -1020,164 +1065,266 @@
         );
         headerText.textContent = "关注的UP主";
 
-        const formatDate = (timestamp) => {
-          const date = new Date(timestamp * 1000);
-          const year = date.getFullYear();
-          const month = String(date.getMonth() + 1).padStart(2, "0");
-          const day = String(date.getDate()).padStart(2, "0");
-
-          return `${year}-${month}-${day}`;
-        };
-
         listContainer.innerHTML = data.list
           .map(
             (up) => `
-      <div class="blocked-up-item">
-          <a href="https://space.bilibili.com/${up.mid}"
-             target="_blank"
-             class="blocked-up-info">
-              ${up.uname}
-          </a>
-          <span class="follow-time">${formatDate(up.mtime)}</span>
-      </div>
-  `
+                  <div class="blocked-up-item">
+                      <a href="https://space.bilibili.com/${up.mid}"
+                         target="_blank"
+                         class="blocked-up-info">
+                          ${up.uname}
+                      </a>
+                      <span class="follow-time">${DOMUtils.formatDate(
+                        up.mtime
+                      )}</span>
+                  </div>
+              `
           )
           .join("");
-      }
-
-      const setupPanelInteraction = () => {
-        let panelVisible = false;
-        let mouseInPanel = false;
-
-        toggleButton.addEventListener("mouseenter", () => {
-          panel.classList.add("show");
-          panelVisible = true;
-          toggleAllButtons(true);
-          updateFollowingList();
-        });
-
-        panel.addEventListener("mouseenter", () => {
-          mouseInPanel = true;
-        });
-
-        panel.addEventListener("mouseleave", () => {
-          mouseInPanel = false;
-          setTimeout(() => {
-            if (!mouseInPanel && !toggleButton.matches(":hover")) {
-              panel.classList.remove("show");
-              panelVisible = false;
-              toggleAllButtons(false);
-            }
-          }, 200);
-        });
-
-        toggleButton.addEventListener("mouseleave", () => {
-          setTimeout(() => {
-            if (!mouseInPanel) {
-              panel.classList.remove("show");
-              panelVisible = false;
-              toggleAllButtons(false);
-            }
-          }, 200);
-        });
       };
 
-      document.body.appendChild(toggleButton);
-      document.body.appendChild(panel);
-      setupPanelInteraction();
+      // 设置面板交互
+      toggleButton.addEventListener("mouseenter", () => {
+        panel.classList.add("show");
+        this.toggleAllButtons(true);
+        updateFollowingList();
+      });
 
-      followingPanelInitialized = true;
-    } catch (error) {
-      console.warn("创建关注者面板失败:", error);
-    }
-  }
-  function addCheckboxToUpAvatar() {
-    const upAvatar = document.querySelector("a.up-avatar");
-    if (!upAvatar) return;
+      panel.addEventListener("mouseenter", () => {
+        mouseInPanel = true;
+      });
 
-    const href = upAvatar.getAttribute("href");
-    if (!href) return;
+      panel.addEventListener("mouseleave", () => {
+        mouseInPanel = false;
+        setTimeout(() => {
+          if (!mouseInPanel && !toggleButton.matches(":hover")) {
+            panel.classList.remove("show");
+            this.toggleAllButtons(false);
+          }
+        }, 200);
+      });
 
-    const upId = href.match(/\/(\d+)$/)?.[1];
-    if (!upId) return;
-
-    const upNameElement = document.querySelector(".up-name");
-    const upName = upNameElement?.textContent?.trim() || "未知UP主";
-
-    const createAndAddCheckbox = () => {
-      let checkbox = upAvatar.querySelector(".block-checkbox");
-      if (!checkbox) {
-        console.log("Creating new checkbox for up-avatar:", upName);
-        checkbox = createCheckbox(upId, upName);
-        upAvatar.style.position = "relative";
-        upAvatar.appendChild(checkbox);
-        checkbox.style.display = "block";
-        checkbox.style.opacity = "1";
-        checkbox.style.transform = "translateY(0)";
-      }
-    };
-
-    createAndAddCheckbox();
-
-    const avatarObserver = new MutationObserver(() => {
-      createAndAddCheckbox();
-    });
-
-    avatarObserver.observe(upAvatar, {
-      childList: true, // 监听子元素变化
-      subtree: true, // 监听所有后代元素
-      characterData: true, // 监听文本内容变化
-      attributes: true, // 监听属性变化
-    });
-  }
-  const originalRemoveBlockedUp = removeBlockedUp;
-  removeBlockedUp = function (upId) {
-    originalRemoveBlockedUp(upId);
-    blockedUpsPanel?.updateBlockedUpsList();
+      toggleButton.addEventListener("mouseleave", () => {
+        setTimeout(() => {
+          if (!mouseInPanel) {
+            panel.classList.remove("show");
+            this.toggleAllButtons(false);
+          }
+        }, 200);
+      });
+    },
   };
 
-  const observer = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-      mutation.addedNodes.forEach((node) => {
-        if (node.nodeType === 1) {
-          if (
-            node.classList?.contains("floor-single-card") ||
-            node.classList?.contains("bili-live-card")
-          ) {
-            node.remove();
+  /**
+   * 内容过滤器模块
+   * 负责屏蔽和过滤网页上的内容
+   */
+  const ContentFilter = {
+    /**
+     * 过滤并移除被屏蔽UP主的内容
+     */
+    filterBlockedContent() {
+      // 移除特定类型的卡片
+      document
+        .querySelectorAll(".floor-single-card, .bili-live-card")
+        .forEach((card) => card.remove());
+
+      const blockedUps = DataManager.getBlockedUps();
+      const filteredUps = new Set();
+
+      document
+        .querySelectorAll(".bili-video-card__info--owner")
+        .forEach((link) => {
+          const upId = link.getAttribute("href")?.match(/\/(\d+)$/)?.[1];
+          if (upId && blockedUps.some((up) => up.id === upId)) {
+            const authorSpan = link.querySelector(
+              ".bili-video-card__info--author"
+            );
+            const upName = authorSpan?.getAttribute("title") || "未知UP主";
+            DataManager.addBlockedUp(upId, upName);
+
+            const targetCard =
+              link.closest(".feed-card") || link.closest(".bili-video-card");
+            if (targetCard && !filteredUps.has(upId)) {
+              targetCard.remove();
+              UIManager.showToast(upName, true);
+              filteredUps.add(upId);
+            }
+          }
+        });
+    },
+
+    /**
+     * 初始化MutationObserver以监视DOM变化并过滤内容
+     */
+    initContentObserver() {
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === 1) {
+              // 移除不需要的卡片
+              if (
+                node.classList?.contains("floor-single-card") ||
+                node.classList?.contains("bili-live-card")
+              ) {
+                node.remove();
+                return;
+              }
+
+              // 移除子节点中的卡片
+              node
+                .querySelectorAll?.(".floor-single-card, .bili-live-card")
+                .forEach((card) => card.remove());
+
+              // 处理视频卡片中的UP主链接
+              node
+                .querySelectorAll?.(".bili-video-card__info--owner")
+                .forEach((link) => {
+                  if (!link.getAttribute("data-hover-initialized")) {
+                    UIManager.handleHover(link);
+                  }
+                });
+            }
+          });
+          this.filterBlockedContent();
+        });
+      });
+
+      // 启动观察器
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+    },
+  };
+
+  /**
+   * API管理模块
+   * 处理与外部API的交互
+   */
+  const APIManager = {
+    /**
+     * 获取用户关注列表
+     * @param {string} userId - 用户ID
+     * @returns {Promise<Object|null>} 关注列表数据或null（出错时）
+     */
+    async fetchFollowingList(userId) {
+      try {
+        // 无论总数多少，始终只请求最近的50个
+        const response = await fetch(
+          `https://api.bilibili.com/x/relation/followings?vmid=${userId}&ps=50`,
+          {
+            credentials: "include",
+            headers: { Accept: "application/json" },
+          }
+        );
+
+        if (!response.ok)
+          throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        if (data.code !== 0)
+          throw new Error(
+            `API error! code: ${data.code}, message: ${data.message}`
+          );
+
+        return data.data;
+      } catch (error) {
+        console.error("Error fetching following list:", error);
+        return null;
+      }
+    },
+  };
+
+  /**
+   * DOM工具模块
+   * 提供DOM操作相关的辅助函数
+   */
+  const DOMUtils = {
+    /**
+     * 等待指定元素加载完成
+     * @param {string} selector - 元素选择器
+     * @param {number} maxAttempts - 最大尝试次数
+     * @param {number} interval - 尝试间隔（毫秒）
+     * @param {number} initialDelay - 初始延迟（毫秒）
+     * @returns {Promise<HTMLElement|null>} 返回找到的元素或null
+     */
+    waitForElement(
+      selector,
+      maxAttempts = 3,
+      interval = 1000,
+      initialDelay = 1000
+    ) {
+      return new Promise((resolve, reject) => {
+        let attempts = 0;
+
+        const checkElement = () => {
+          const element = document.querySelector(selector);
+          if (element) {
+            resolve(element);
             return;
           }
 
-          node
-            .querySelectorAll?.(".floor-single-card, .bili-live-card")
-            .forEach((card) => card.remove());
+          attempts++;
+          if (attempts >= maxAttempts) {
+            reject(
+              new Error(
+                `Element ${selector} not found after ${maxAttempts} attempts`
+              )
+            );
+            return;
+          }
 
-          node
-            .querySelectorAll?.(".bili-video-card__info--owner")
-            .forEach((link) => {
-              if (!link.getAttribute("data-hover-initialized")) {
-                handleHover(link);
-              }
-            });
-        }
+          setTimeout(checkElement, interval);
+        };
+
+        setTimeout(checkElement, initialDelay);
       });
-      filterBlockedContent();
+    },
+
+    /**
+     * 格式化时间戳为日期字符串
+     * @param {number} timestamp - 时间戳（秒）
+     * @returns {string} 格式化后的日期字符串（YYYY-MM-DD）
+     */
+    formatDate(timestamp) {
+      const date = new Date(timestamp * 1000); // 转换为毫秒
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+
+      return `${year}-${month}-${day}`;
+    },
+  };
+
+  /**
+   * 初始化函数
+   * 程序入口点，初始化各个组件
+   */
+  function initialize() {
+    // 添加样式
+    addStyles();
+
+    // 初始化视频卡片上的UP主触发器
+    document
+      .querySelectorAll(".bili-video-card__info--owner")
+      .forEach((element) => UIManager.handleHover(element));
+
+    // 添加UP主头像复选框
+    UIManager.addCheckboxToUpAvatar();
+
+    // 过滤屏蔽内容
+    ContentFilter.filterBlockedContent();
+
+    // 初始化内容观察器
+    ContentFilter.initContentObserver();
+
+    // 页面加载完成后创建面板
+    window.addEventListener("load", async () => {
+      await UIManager.createFollowingPanel();
+      UIManager.blockedUpsPanel = UIManager.createBlockedUpsPanel();
     });
-  });
+  }
 
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-  });
-
-  document
-    .querySelectorAll(".bili-video-card__info--owner")
-    .forEach(handleHover);
-  addCheckboxToUpAvatar();
-  filterBlockedContent();
-
-  window.addEventListener("load", async () => {
-    await createFollowingPanel();
-    blockedUpsPanel = createBlockedUpsPanel();
-  });
+  // 启动程序
+  initialize();
 })();
