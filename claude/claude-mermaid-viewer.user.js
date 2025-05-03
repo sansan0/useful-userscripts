@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           claude-mermaid-viewer
 // @namespace      https://github.com/sansan0/useful-userscripts
-// @version        1.1
+// @version        1.5
 // @description    在 Claude 聊天界面中渲染和查看 Mermaid 图表的工具
 // @author         sansan
 // @match          https://claude.ai/*
@@ -94,6 +94,28 @@
         stroke: currentColor;
         stroke-width: 2;
     }
+
+
+div.text-text-500.text-xs.p-3\\.5.pb-0.mermaid-toggle {
+        display: flex !important;
+        align-items: center !important;
+        gap: 5px !important;
+        cursor: pointer !important;
+    }
+
+    div.mermaid-toggle span {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    div.mermaid-toggle svg {
+        width: 14px !important;
+        height: 14px !important;
+        stroke: currentColor !important;
+        stroke-width: 2 !important;
+        margin-right: 3px !important;
+    }
 `;
   document.head.appendChild(styleSheet);
 
@@ -104,17 +126,33 @@
   function loadMermaidLibrary(callback) {
     GM.xmlHttpRequest({
       method: "GET",
-      url: "https://cdn.jsdelivr.net/npm/mermaid@11.4.0/dist/mermaid.min.js",
+      url: "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js",
       onload: function (response) {
         const script = document.createElement("script");
         script.textContent = response.responseText;
         document.head.appendChild(script);
-        unsafeWindow.mermaid.initialize({ startOnLoad: false });
+
+        unsafeWindow.mermaid.initialize({
+          startOnLoad: false,
+          flowchart: {
+            htmlLabels: true,
+            wrappingWidth: 300,
+            padding: 20,
+          },
+          class: {
+            wrappingWidth: 300,
+          },
+          state: {
+            wrappingWidth: 300,
+          },
+          er: {
+            wrappingWidth: 300,
+          },
+        });
         callback();
       },
     });
   }
-
   /**
    * 在模态框中渲染 Mermaid 图
    * @param {string} mermaidContent - Mermaid 图的内容
@@ -245,30 +283,45 @@
 
     modal.addEventListener("click", handleModalClick);
     function downloadAsPng() {
+      const contentWrapper = mermaidElement.closest(".mermaid-content-wrapper");
+
+      const scrollLeft = contentWrapper.scrollLeft;
+      const scrollTop = contentWrapper.scrollTop;
+
       const svg = mermaidElement.querySelector("svg");
       if (!svg) return;
 
+      const originalTransform = svg.style.transform;
+      const originalTransformOrigin = svg.style.transformOrigin;
+
+      svg.style.transform = "scale(1)";
+
       const svgClone = svg.cloneNode(true);
 
-      const chineseTextElements = svgClone.querySelectorAll("text");
+      if (
+        !svgClone.hasAttribute("viewBox") &&
+        svgClone.hasAttribute("width") &&
+        svgClone.hasAttribute("height")
+      ) {
+        svgClone.setAttribute(
+          "viewBox",
+          `0 0 ${svgClone.getAttribute("width")} ${svgClone.getAttribute(
+            "height"
+          )}`
+        );
+      }
 
-      chineseTextElements.forEach((text) => {
-        const bbox = text.getBBox();
-        const padding = 10;
-        text.setAttribute("textLength", bbox.width + padding);
-        text.setAttribute("lengthAdjust", "spacingAndGlyphs");
-      });
-
+      const padding = 20;
       const bbox = svg.getBBox();
+      const width = Math.ceil(bbox.width + padding * 2);
+      const height = Math.ceil(bbox.height + padding * 2);
 
-      svgClone.setAttribute("width", bbox.width);
-      svgClone.setAttribute("height", bbox.height);
-
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-
-      canvas.width = bbox.width;
-      canvas.height = bbox.height;
+      svgClone.setAttribute("width", width);
+      svgClone.setAttribute("height", height);
+      svgClone.setAttribute(
+        "viewBox",
+        `${bbox.x - padding} ${bbox.y - padding} ${width} ${height}`
+      );
 
       const serializer = new XMLSerializer();
       let source = serializer.serializeToString(svgClone);
@@ -285,11 +338,18 @@
 
       const url =
         "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
+
       const img = new Image();
       img.onload = function () {
         const scale = 2;
-        canvas.width = bbox.width * scale;
-        canvas.height = bbox.height * scale;
+        const canvas = document.createElement("canvas");
+        canvas.width = width * scale;
+        canvas.height = height * scale;
+
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#ffffff"; // 白色背景
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
         ctx.scale(scale, scale);
 
         ctx.drawImage(img, 0, 0);
@@ -303,10 +363,16 @@
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+
+        svg.style.transform = originalTransform;
+        svg.style.transformOrigin = originalTransformOrigin;
+
+        contentWrapper.scrollLeft = scrollLeft;
+        contentWrapper.scrollTop = scrollTop;
       };
+
       img.src = url;
     }
-
     /**
      * 创建控制按钮
      * @param {string} className - 按钮的类名
@@ -432,7 +498,25 @@
      */
     function resetZoom() {
       currentScale = initialScale;
-      updateSvgScale();
+
+      const svg = mermaidElement.querySelector("svg");
+      svg.style.transform = "";
+
+      mermaidElement.style.width = "";
+      mermaidElement.style.height = "";
+
+      setTimeout(() => {
+        updateSvgScale();
+
+        setTimeout(() => {
+          const centerX =
+            (contentWrapper.scrollWidth - contentWrapper.clientWidth) / 2;
+          const centerY =
+            (contentWrapper.scrollHeight - contentWrapper.clientHeight) / 2;
+          contentWrapper.scrollLeft = centerX;
+          contentWrapper.scrollTop = centerY;
+        }, 0);
+      }, 0);
     }
 
     /**
@@ -460,7 +544,7 @@
               const wrapperHeight = contentWrapper.clientHeight;
               const scaleX = wrapperWidth / svgWidth;
               const scaleY = wrapperHeight / svgHeight;
-              initialScale = Math.min(scaleX, scaleY) * 0.9;
+              initialScale = Math.min(scaleX, scaleY) * 0.95;
 
               updateSvgScale();
 
@@ -497,8 +581,14 @@
    */
   function getMermaidContent(element) {
     const codeElement = element
-      .closest(".flex.flex-col")
-      .querySelector(".language-mermaid");
+      .closest("div")
+      .nextElementSibling.querySelector("code.language-mermaid");
+
+    if (!codeElement) {
+      console.error("Mermaid code element not found");
+      return "";
+    }
+
     return extractMermaidSyntax(codeElement);
   }
 
@@ -508,34 +598,38 @@
    * @returns {string} - Mermaid 语法
    */
   function extractMermaidSyntax(codeElement) {
-    const topLevelSpans = codeElement.children;
-    const lines = [];
+    if (!codeElement) {
+      console.error("Code element not found");
+      return "";
+    }
 
     try {
-      for (const span of topLevelSpans) {
-        if (!span || span.textContent === undefined) continue;
+      let rawText = "";
 
-        const spanLines = span.textContent.split("\n");
+      rawText = codeElement.textContent;
 
-        for (const line of spanLines) {
-          const cleanedLine = line
-            .replace(/\t/g, "  ")
-            .trimEnd()
-            .replace(/[\u200B-\u200D\uFEFF]/g, "");
-          if (cleanedLine !== "") {
-            lines.push(cleanedLine);
-          }
-        }
-      }
+      const lines = rawText.split("\n");
+
+      // 处理每一行，移除多余空白字符和特殊Unicode字符
+      const cleanedLines = lines
+        .map(
+          (line) =>
+            line
+              .replace(/[\u200B-\u200D\uFEFF]/g, "") // 移除零宽字符
+              .replace(/\t/g, "  ") // 制表符替换为空格
+              .trimEnd() // 移除行尾空格
+        )
+        .filter((line) => line.trim() !== ""); // 过滤空行
+
+      const mermaidSyntax = cleanedLines.join("\n");
+
+      console.log("Extracted Mermaid Syntax:");
+      console.log(mermaidSyntax);
+      return mermaidSyntax;
     } catch (error) {
       console.error("Error extracting Mermaid syntax:", error);
       return "";
     }
-
-    const mermaidSyntax = lines.join("\n");
-    console.log("Extracted Mermaid Syntax:");
-    console.log(mermaidSyntax);
-    return mermaidSyntax;
   }
 
   /**
@@ -545,19 +639,33 @@
     const observer = new MutationObserver((mutations) => {
       mutations.forEach(() => {
         const elements = document.querySelectorAll(
-          "div.text-text-300.absolute.pl-3.pt-2\\.5.text-xs"
+          "div.text-text-500.text-xs.p-3\\.5.pb-0[style*='margin-bottom: 20px;']"
         );
         elements.forEach((element) => {
           if (
-            element.textContent === "mermaid" &&
+            element.textContent.trim() === "mermaid" &&
             !element.classList.contains("mermaid-toggle")
           ) {
             element.classList.add("mermaid-toggle");
             const icon = document.createElement("span");
-            icon.innerHTML = `<svg viewBox="0 0 24 24" fill="none">
-                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M13.8 12H3"/>
-                        </svg>`;
-            element.insertBefore(icon, element.firstChild);
+            icon.style.display = "inline-flex";
+            icon.style.alignItems = "center";
+            icon.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M13.8 12H3"/>
+                    </svg>`;
+            element.innerHTML = "";
+            element.appendChild(icon);
+            element.appendChild(document.createTextNode("mermaid"));
+
+            element.style.cursor = "pointer";
+            element.style.transition = "opacity 0.2s ease";
+            element.addEventListener("mouseenter", () => {
+              element.style.opacity = "0.8";
+            });
+            element.addEventListener("mouseleave", () => {
+              element.style.opacity = "1";
+            });
+
             element.addEventListener("click", () => {
               const mermaidContent = getMermaidContent(element);
               renderMermaidInModal(mermaidContent);
